@@ -1,0 +1,11 @@
+part_number,material_code,material_grade,description,contracted_unit_price,uom,currency
+PN-1001,MAT-SS304,SS304,Stainless steel hex bolt M10 x 40,12.50,EA,USD
+PN-1002,MAT-SS316,SS316,Stainless steel hex nut M10,4.75,EA,USD
+PN-1003,MAT-A36,A36,Mild steel flat bar 50x6 mm,8.20,M,USD
+PN-1004,MAT-AL6061,AL6061,Aluminum round bar 25 mm,18.90,M,USD
+PN-1005,MAT-BRZ,C36000,Brass hexagonal bar 12 mm,22.40,M,USD
+PN-1006,MAT-TI6AL4V,TI-6AL-4V,Titanium fastener M8 x 25,96.00,EA,USD
+PN-1007,MAT-POM,POM-C,Acetal spacer 20 mm OD,3.15,EA,USD
+PN-1008,MAT-NBR,NBR70,Nitrile O-ring 2-214,0.85,EA,USD
+PN-1009,MAT-PTFE,PTFE,PTFE gasket 4 inch class 150,14.25,EA,USD
+PN-1010,MAT-CS,SA105,Carbon steel flange WN RF 2 inch,47.80,EA,USD
