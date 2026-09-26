@@ -25,7 +25,7 @@ REQUIRED_FIELDS = [
     "Delivery Date",
 ]
 
-PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
+PART_RE = re.compile(r"\b(PN-\d{3,6}[A-Z]?)\b", re.I)
 
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
@@ -144,16 +144,11 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     for row in rows:
         row_str = " ".join([clean_cell(c) for c in row if c])
         
-        if "PO NUMBER" in row_str.upper() or "PURCHASE ORDER" in row_str.upper() or "GRAND TOTAL" in row_str.upper():
-            continue
-            
         pn_match = PART_RE.search(row_str)
         if not pn_match:
             continue
             
         part_num = pn_match.group(1).upper()
-        if part_num == "2026":
-            continue
         
         grade = ""
         unit = "EA"
@@ -202,8 +197,6 @@ def parse_text_lines(text: str) -> pd.DataFrame:
         pn_match = PART_RE.search(line)
         if pn_match:
             part_num = pn_match.group(1).upper()
-            if part_num == "2026":
-                continue
             unit_match = re.search(r"\b(EA|M|PCS|KG|LBS|IN|FT|OZ)\b", line, re.I)
             unit = unit_match.group(1).upper() if unit_match else "EA"
             
