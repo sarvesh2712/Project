@@ -59,13 +59,30 @@ PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
     master = pd.read_csv(path, dtype=str)
-    master.columns = [c.strip().lower() for c in master.columns]
-    required = {"part_number", "material_grade", "contracted_unit_price"}
+    master.columns = [c.strip().lower().replace(" ", "_") for c in master.columns]
+    
+    # Map common column name variations automatically
+    rename_map = {}
+    for col in master.columns:
+        if "part" in col:
+            rename_map[col] = "part_number"
+        elif "grade" in col or "material" in col:
+            rename_map[col] = "material_grade"
+        elif "price" in col or "cost" in col:
+            rename_map[col] = "contracted_unit_price"
+    master = master.rename(columns=rename_map)
+
+    required = {"part_number", "contracted_unit_price"}
     missing = required - set(master.columns)
     if missing:
         raise ValueError(f"pricing_master.csv is missing columns: {sorted(missing)}")
+        
     master["part_number"] = master["part_number"].str.strip()
-    master["material_grade"] = master["material_grade"].fillna("").str.strip()
+    if "material_grade" in master.columns:
+        master["material_grade"] = master["material_grade"].fillna("").str.strip()
+    else:
+        master["material_grade"] = ""
+        
     master["contracted_unit_price"] = pd.to_numeric(
         master["contracted_unit_price"], errors="coerce"
     )
