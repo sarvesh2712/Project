@@ -25,40 +25,11 @@ REQUIRED_FIELDS = [
     "Delivery Date",
 ]
 
-HEADER_ALIASES = {
-    "part number": "Part Number",
-    "part no": "Part Number",
-    "part no.": "Part Number",
-    "part #": "Part Number",
-    "pn": "Part Number",
-    "item": "Part Number",
-    "sku": "Part Number",
-    "material grade": "Material Grade",
-    "grade": "Material Grade",
-    "material": "Material Grade",
-    "matl grade": "Material Grade",
-    "spec": "Material Grade",
-    "quantity": "Quantity",
-    "qty": "Quantity",
-    "qty.": "Quantity",
-    "unit": "Client Unit",
-    "uom": "Client Unit",
-    "unit price": "Unit Price",
-    "price": "Unit Price",
-    "unit cost": "Unit Price",
-    "u/p": "Unit Price",
-    "delivery date": "Delivery Date",
-    "need by": "Delivery Date",
-    "due date": "Delivery Date",
-    "ship date": "Delivery Date",
-    "eta": "Delivery Date",
-    "line total": "Ignore",
-    "total": "Ignore",
-    "amount": "Ignore",
-    "ext price": "Ignore",
-}
-
 PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
+GRADE_RE = re.compile(r"\b(MAT-[A-Z0-9-]+|[A-Z]{1,3}\d{3,4}|[A-Z0-9]{3,6})\b", re.I)
+QTY_RE = re.compile(r"\b(\d+(?:\.\d+)?)\b")
+UNIT_RE = re.compile(r"\b(EA|M|PCS|KG|LBS|IN|FT|OZ)\b", re.I)
+PRICE_RE = re.compile(r"\b(\d{1,5}(?:\.\d{2})?)\b")
 
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
@@ -94,12 +65,6 @@ def load_pricing_master(path: Path) -> pd.DataFrame:
         {"part_number": "PN-1008", "material_grade": "NBR70", "material_code": "MAT-NBR", "contracted_unit_price": 0.85},
     ]
     return pd.DataFrame(fallback_data)
-
-
-def normalize_header(value: str) -> str | None:
-    key = re.sub(r"\s+", " ", (value or "").strip().lower())
-    key = key.replace("_", " ")
-    return HEADER_ALIASES.get(key)
 
 
 def parse_money(value) -> float | None:
@@ -179,81 +144,90 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     if len(rows) < 2:
         return None
     
-    header_idx = None
-    col_indices = {}
-    
-    for i, row in enumerate(rows[:6]):
-        normalized_row = [normalize_header(cell) for cell in row]
-        if "Part Number" in normalized_row:
-            header_idx = i
-            for idx, val in enumerate(normalized_row):
-                if val and val != "Ignore":
-                    col_indices[val] = idx
-            break
-            
-    if header_idx is None or "Part Number" not in col_indices:
-        return None
-
     records = []
-    for row in rows[header_idx + 1:]:
-        if not any(row):
-            continue
-            
-        record = {field: "" for field in REQUIRED_FIELDS}
-        for field, idx in col_indices.items():
-            if idx < len(row):
-                record[field] = row[idx]
-                
-        part_num = ""
-        for cell in row:
-            matched_pn = PART_RE.search(cell)
-            if matched_pn:
-                part_num = matched_pn.group(1).upper()
-                break
-        if not part_num and "Part Number" in record and record["Part Number"]:
-            part_num = clean_cell(record["Part Number"]).upper()
-            
-        if not part_num:
-            continue
-            
-        record["Part Number"] = part_num
-        records.append(record)
+    for row in rows:
+        row_text = " ".join([c for c in row if c])
         
+        # Find part number
+        pn_match = PART_RE.search(row_text)
+        if not pn_match:
+            continue
+        part_num = pn_match.group(1).upper()
+        
+        # Find material code / grade
+        grade_match = GRADE_RE.search(row_text.replace(part_num, ""))
+        grade = ""
+        if grade_match:
+            grade = grade_match.group(1).replace("MAT-", "").strip()
+
+        # Extract all numbers in the row to intelligently assign Qty, Unit Price, and Line Total
+        numbers = []
+        for cell in row:
+            for num_match in re.finditer(r"\b[\d,]+(?:\.\d+)?\b", cell):
+                val_str = num_match.group().replace(",", "")
+                try:
+                    numbers.append(float(val_str))
+                except ValueError:
+                    pass
+
+        # Find unit
+        unit_match = UNIT_RE.search(row_text)
+        unit = unit_match.group(1).upper() if unit_match else "EA"
+
+        qty = None
+        unit_price = None
+
+        # Filter out line totals and isolate Qty and Unit Price from numbers array
+        valid_nums = [n for n in numbers if n < 10000] # Exclude order numbers or huge totals if any
+        if len(valid_nums) >= 3:
+            # Usually [Qty, Unit Price, Line Total]
+            # Let's sort or check relationships: Qty * Unit Price ~= Line Total
+            possible_qty = valid_nums[0]
+            possible_prices = valid_nums[1:]
+            
+            qty = possible_qty
+            # Pick the smaller decimal number as unit price if multiple exist
+            unit_price = min(possible_prices) if possible_prices else possible_qty
+        elif len(valid_nums) == 2:
+            qty, unit_price = valid_nums[0], valid_nums[1]
+        elif len(valid_nums) == 1:
+            qty = valid_nums[0]
+
+        records.append({
+            "Part Number": part_num,
+            "Material Grade": grade,
+            "Quantity": qty,
+            "Client Unit": unit,
+            "Unit Price": unit_price,
+            "Delivery Date": ""
+        })
+
     if not records:
         return None
     return pd.DataFrame(records)
 
 
-LINE_RE = re.compile(
-    r"(?P<part>PN-\d+)\s+"
-    r"(?P<code>MAT-[A-Z0-9-]+)\s+"
-    r"(?P<desc>.*?)\s+"
-    r"(?P<qty>[\d,]+(?:\.\d+)?)\s+"
-    r"(?P<unit>EA|M|PCS|KG|LBS|IN|FT|OZ)?\s*"
-    r"(?:USD|EUR|GBP|INR)?\s*"
-    r"(?P<price>[\d,]+(?:\.\d+)?)",
-    re.I,
-)
-
-
 def parse_text_lines(text: str) -> pd.DataFrame:
     records = []
     for line in text.splitlines():
-        match = LINE_RE.search(line)
-        if match:
-            code = match.group("code")
-            grade = code.replace("MAT-", "") if code else ""
-            unit = match.group("unit") or "EA"
-            records.append(
-                {
-                    "Part Number": match.group("part").upper(),
-                    "Material Grade": grade,
-                    "Quantity": match.group("qty"),
-                    "Client Unit": unit,
-                    "Unit Price": match.group("price"),
-                    "Delivery Date": "",
-                }
-            )
+        pn_match = PART_RE.search(line)
+        if pn_match:
+            part_num = pn_match.group(1).upper()
+            unit_match = UNIT_RE.search(line)
+            unit = unit_match.group(1).upper() if unit_match else "EA"
+            
+            numbers = [float(m.group().replace(",", "")) for m in re.finditer(r"\b\d+(?:\.\d+)?\b", line)]
+            qty = numbers[0] if len(numbers) > 0 else 1.0
+            price = numbers[1] if len(numbers) > 1 else 0.0
+            
+            records.append({
+                "Part Number": part_num,
+                "Material Grade": "",
+                "Quantity": qty,
+                "Client Unit": unit,
+                "Unit Price": price,
+                "Delivery Date": "",
+            })
     return pd.DataFrame(records) if records else pd.DataFrame(columns=REQUIRED_FIELDS)
 
 
@@ -269,7 +243,7 @@ def extract_pdf_bytes(file_bytes: bytes) -> tuple[str, pd.DataFrame]:
             frames.append(parsed)
 
     if frames:
-        items = pd.concat(frames, ignore_index=True)
+        items = pd.concat(frames, ignore_index=True).drop_duplicates(subset=["Part Number"])
     else:
         items = parse_text_lines(text)
 
