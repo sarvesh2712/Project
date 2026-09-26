@@ -26,7 +26,6 @@ REQUIRED_FIELDS = [
 ]
 
 PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
-UNIT_SET = {"EA", "M", "PCS", "KG", "LBS", "IN", "FT", "OZ"}
 
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
@@ -141,78 +140,92 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     if len(rows) < 2:
         return None
     
+    header_idx = None
+    col_map = {}
+    
+    for i, row in enumerate(rows[:6]):
+        row_joined = " ".join([str(c).lower() for c in row if c])
+        if "part" in row_joined and ("qty" in row_joined or "quantity" in row_joined):
+            header_idx = i
+            for idx, cell in enumerate(row):
+                c_low = str(cell).strip().lower()
+                if "part" in c_low:
+                    col_map["part"] = idx
+                elif "material" in c_low or "grade" in c_low:
+                    col_map["grade"] = idx
+                elif "qty" in c_low or "quantity" in c_low:
+                    col_map["qty"] = idx
+                elif c_low in {"unit", "uom"} or ("unit" in c_low and "price" not in c_low):
+                    col_map["unit"] = idx
+                elif "price" in c_low or "cost" in c_low or "u/p" in c_low:
+                    col_map["price"] = idx
+            break
+            
+    if header_idx is None:
+        header_idx = 0
+        col_map = {"part": 0, "grade": 1, "qty": 3, "unit": 4, "price": 5}
+
     records = []
-    for row in rows:
-        # Filter out empty cells
-        cells = [c for c in row if c]
-        if not cells:
+    for row in rows[header_idx + 1:]:
+        if not any(row):
             continue
             
-        part_num = ""
+        row_str = " ".join([str(c) for c in row if c])
+        pn_match = PART_RE.search(row_str)
+        if not pn_match:
+            continue
+        part_num = pn_match.group(1).upper()
+        
         grade = ""
+        grade_idx = col_map.get("grade")
+        if grade_idx is not None and grade_idx < len(row):
+            grade = clean_cell(row[grade_idx]).replace("MAT-", "")
+        if not grade:
+            g_match = re.search(r"MAT-([A-Z0-9-]+)", row_str, re.I)
+            if g_match:
+                grade = g_match.group(1)
+
         qty = None
+        qty_idx = col_map.get("qty")
+        if qty_idx is not None and qty_idx < len(row):
+            qty = parse_qty(row[qty_idx])
+        if qty is None:
+            nums = [parse_qty(c) for c in row if parse_qty(c) is not None]
+            valid_nums = [n for n in nums if n < 100000 and n != parse_qty(part_num.replace("PN-", ""))]
+            if valid_nums:
+                qty = valid_nums[0]
+
         unit = "EA"
-        prices = []
+        unit_idx = col_map.get("unit")
+        if unit_idx is not None and unit_idx < len(row):
+            u_val = clean_cell(row[unit_idx]).upper()
+            if u_val in {"EA", "M", "PCS", "KG", "LBS", "IN", "FT", "OZ"}:
+                unit = u_val
+        if unit == "EA":
+            u_match = re.search(r"\b(EA|M|PCS|KG|LBS|IN|FT|OZ)\b", row_str, re.I)
+            if u_match:
+                unit = u_match.group(1).upper()
 
-        for cell in cells:
-            # Check part number
-            pn_match = PART_RE.search(cell)
-            if pn_match and not part_num:
-                part_num = pn_match.group(1).upper()
-                continue
-                
-            # Check material code/grade
-            if cell.upper().startswith("MAT-") or cell.upper() in {"SS304", "SS316", "A36", "AI 6061", "C36000", "TI-6AL-4V", "POM-C", "NBR70"}:
-                grade = cell.replace("MAT-", "").strip()
-                continue
-                
-            # Check unit
-            cleaned_cell_upper = cell.upper()
-            if cleaned_cell_upper in UNIT_SET:
-                unit = cleaned_cell_upper
-                continue
-
-            # Check numeric values (Qty or Price)
-            money_val = parse_money(cell)
-            if money_val is not None:
-                prices.append(money_val)
-
-        if not part_num:
-            # Try to find part number anywhere in the row cells combined
-            row_concat = " ".join(cells)
-            pn_match = PART_RE.search(row_concat)
-            if pn_match:
-                part_num = pn_match.group(1).upper()
-            else:
-                continue
-
-        # Separate qty and prices from collected numeric values
-        # In a standard row: [Qty, Unit Price, Line Total]
-        valid_nums = [p for p in prices if p > 0]
-        if len(valid_nums) >= 3:
-            qty = valid_nums[0]
-            # Unit price is typically the second number (smaller than line total)
-            unit_price = valid_nums[1]
-        elif len(valid_nums) == 2:
-            qty, unit_price = valid_nums[0], valid_nums[1]
-        elif len(valid_nums) == 1:
-            qty = valid_nums[0]
-            unit_price = None
-        else:
-            qty, unit_price = None, None
+        price = None
+        price_idx = col_map.get("price")
+        if price_idx is not None and price_idx < len(row):
+            price = parse_money(row[price_idx])
+        if price is None:
+            nums = [parse_money(c) for c in row if parse_money(c) is not None]
+            valid_prices = [p for p in nums if p is not None and p < 10000 and p != qty]
+            if valid_prices:
+                price = valid_prices[-1]
 
         records.append({
             "Part Number": part_num,
             "Material Grade": grade,
             "Quantity": qty,
             "Client Unit": unit,
-            "Unit Price": unit_price,
+            "Unit Price": price,
             "Delivery Date": ""
         })
 
-    if not records:
-        return None
-    return pd.DataFrame(records)
+    return pd.DataFrame(records) if records else None
 
 
 def parse_text_lines(text: str) -> pd.DataFrame:
