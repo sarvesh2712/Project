@@ -54,6 +54,8 @@ HEADER_ALIASES = {
     "eta": "Delivery Date",
 }
 
+PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
+
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
     if path.exists():
@@ -77,7 +79,6 @@ def load_pricing_master(path: Path) -> pd.DataFrame:
         except Exception:
             pass
 
-    # Fallback default pricing catalog if CSV is missing or unreadable
     fallback_data = [
         {"part_number": "PN-1001", "material_grade": "SS304", "material_code": "MAT-SS304", "contracted_unit_price": 12.50},
         {"part_number": "PN-1002", "material_grade": "SS316", "material_code": "MAT-SS316", "contracted_unit_price": 4.75},
@@ -173,27 +174,47 @@ def extract_tables(pdf: pdfplumber.PDF) -> list[list[list[str]]]:
 def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     if len(rows) < 2:
         return None
-    header_map: dict[int, str] = {}
+    
     header_idx = None
-    for i, row in enumerate(rows[:5]):
-        mapped = {idx: normalize_header(cell) for idx, cell in enumerate(row)}
-        hits = [v for v in mapped.values() if v]
-        if "Part Number" in hits and len(hits) >= 2:
-            header_map = {idx: name for idx, name in mapped.items() if name}
+    col_indices = {}
+    
+    for i, row in enumerate(rows[:6]):
+        normalized_row = [normalize_header(cell) for cell in row]
+        if "Part Number" in normalized_row:
             header_idx = i
+            for idx, val in enumerate(normalized_row):
+                if val:
+                    col_indices[val] = idx
             break
-    if header_idx is None:
+            
+    if header_idx is None or "Part Number" not in col_indices:
         return None
 
     records = []
-    for row in rows[header_idx + 1 :]:
+    for row in rows[header_idx + 1:]:
+        if not any(row):
+            continue
+            
         record = {field: "" for field in REQUIRED_FIELDS}
-        for idx, field in header_map.items():
+        for field, idx in col_indices.items():
             if idx < len(row):
                 record[field] = row[idx]
-        if not record["Part Number"]:
+                
+        part_num = ""
+        for cell in row:
+            matched_pn = PART_RE.search(cell)
+            if matched_pn:
+                part_num = matched_pn.group(1).upper()
+                break
+        if not part_num and "Part Number" in record and record["Part Number"]:
+            part_num = clean_cell(record["Part Number"]).upper()
+            
+        if not part_num:
             continue
+            
+        record["Part Number"] = part_num
         records.append(record)
+        
     if not records:
         return None
     return pd.DataFrame(records)
