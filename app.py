@@ -27,9 +27,7 @@ REQUIRED_FIELDS = [
 
 PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
 GRADE_RE = re.compile(r"\b(MAT-[A-Z0-9-]+|[A-Z]{1,3}\d{3,4}|[A-Z0-9]{3,6})\b", re.I)
-QTY_RE = re.compile(r"\b(\d+(?:\.\d+)?)\b")
 UNIT_RE = re.compile(r"\b(EA|M|PCS|KG|LBS|IN|FT|OZ)\b", re.I)
-PRICE_RE = re.compile(r"\b(\d{1,5}(?:\.\d{2})?)\b")
 
 
 def load_pricing_master(path: Path) -> pd.DataFrame:
@@ -148,46 +146,39 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     for row in rows:
         row_text = " ".join([c for c in row if c])
         
-        # Find part number
         pn_match = PART_RE.search(row_text)
         if not pn_match:
             continue
         part_num = pn_match.group(1).upper()
         
-        # Find material code / grade
         grade_match = GRADE_RE.search(row_text.replace(part_num, ""))
         grade = ""
         if grade_match:
             grade = grade_match.group(1).replace("MAT-", "").strip()
 
-        # Extract all numbers in the row to intelligently assign Qty, Unit Price, and Line Total
-        numbers = []
-        for cell in row:
-            for num_match in re.finditer(r"\b[\d,]+(?:\.\d+)?\b", cell):
-                val_str = num_match.group().replace(",", "")
-                try:
-                    numbers.append(float(val_str))
-                except ValueError:
-                    pass
+        # Clean row text by removing part number and grade to prevent digit contamination
+        clean_row_text = row_text.replace(part_num, "")
+        if grade:
+            clean_row_text = clean_row_text.replace(grade, "").replace(f"MAT-{grade}", "")
 
-        # Find unit
+        numbers = []
+        for match in re.finditer(r"\b[\d,]+(?:\.\d+)?\b", clean_row_text):
+            val_str = match.group().replace(",", "")
+            try:
+                numbers.append(float(val_str))
+            except ValueError:
+                pass
+
         unit_match = UNIT_RE.search(row_text)
         unit = unit_match.group(1).upper() if unit_match else "EA"
 
         qty = None
         unit_price = None
 
-        # Filter out line totals and isolate Qty and Unit Price from numbers array
-        valid_nums = [n for n in numbers if n < 10000] # Exclude order numbers or huge totals if any
+        valid_nums = [n for n in numbers if n < 100000]
         if len(valid_nums) >= 3:
-            # Usually [Qty, Unit Price, Line Total]
-            # Let's sort or check relationships: Qty * Unit Price ~= Line Total
-            possible_qty = valid_nums[0]
-            possible_prices = valid_nums[1:]
-            
-            qty = possible_qty
-            # Pick the smaller decimal number as unit price if multiple exist
-            unit_price = min(possible_prices) if possible_prices else possible_qty
+            qty = valid_nums[0]
+            unit_price = valid_nums[1] # Usually second is unit price, third is line total
         elif len(valid_nums) == 2:
             qty, unit_price = valid_nums[0], valid_nums[1]
         elif len(valid_nums) == 1:
@@ -216,7 +207,8 @@ def parse_text_lines(text: str) -> pd.DataFrame:
             unit_match = UNIT_RE.search(line)
             unit = unit_match.group(1).upper() if unit_match else "EA"
             
-            numbers = [float(m.group().replace(",", "")) for m in re.finditer(r"\b\d+(?:\.\d+)?\b", line)]
+            clean_line = line.replace(part_num, "")
+            numbers = [float(m.group().replace(",", "")) for m in re.finditer(r"\b\d+(?:\.\d+)?\b", clean_line)]
             qty = numbers[0] if len(numbers) > 0 else 1.0
             price = numbers[1] if len(numbers) > 1 else 0.0
             
