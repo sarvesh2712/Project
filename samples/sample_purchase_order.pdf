@@ -1,0 +1,114 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 3116 >>
+stream
+0.10 0.21 0.36 rg
+40.0 720.0 532.0 36 re f
+1 1 1 rg
+BT /F2 13 Tf 50.0 734.0 Td (NORTHLINE FABRICATION LTD.) Tj ET
+BT /F2 12 Tf 400.0 734.0 Td (PURCHASE ORDER) Tj ET
+0 0 0 rg
+BT /F1 9 Tf 50.0 690.0 Td (412 Industrial Parkway, Cleveland, OH 44114) Tj ET
+BT /F1 9 Tf 50.0 676.0 Td (Vendor: ShopFloor Components Inc.) Tj ET
+BT /F1 9 Tf 360.0 690.0 Td (PO Number: PO-2026-0918) Tj ET
+BT /F1 9 Tf 360.0 676.0 Td (Date: 25-Sep-2026   Buyer: A. Chen) Tj ET
+BT /F2 14 Tf 50.0 640.0 Td (Client Purchase Order - Production Materials) Tj ET
+BT /F1 9 Tf 50.0 622.0 Td (Unit prices USD. Delivery dates are on-dock. Material certs required for metals.) Tj ET
+0.10 0.21 0.36 rg
+40.0 578.0 532.0 22.0 re f
+0.93 0.95 0.97 rg
+40.0 534.0 532.0 22.0 re f
+40.0 490.0 532.0 22.0 re f
+40.0 446.0 532.0 22.0 re f
+0.8 0.83 0.88 RG
+0.6 w
+40.0 600.0 m 572.0 600.0 l S
+40.0 578.0 m 572.0 578.0 l S
+40.0 556.0 m 572.0 556.0 l S
+40.0 534.0 m 572.0 534.0 l S
+40.0 512.0 m 572.0 512.0 l S
+40.0 490.0 m 572.0 490.0 l S
+40.0 468.0 m 572.0 468.0 l S
+40.0 446.0 m 572.0 446.0 l S
+40.0 424.0 m 572.0 424.0 l S
+40.0 600.0 m 40.0 424.0 l S
+140.0 600.0 m 140.0 424.0 l S
+250.0 600.0 m 250.0 424.0 l S
+330.0 600.0 m 330.0 424.0 l S
+430.0 600.0 m 430.0 424.0 l S
+572.0 600.0 m 572.0 424.0 l S
+1 1 1 rg
+BT /F2 9 Tf 48.0 585.0 Td (Part Number) Tj ET
+BT /F2 9 Tf 140.0 585.0 Td (Material Grade) Tj ET
+BT /F2 9 Tf 250.0 585.0 Td (Quantity) Tj ET
+BT /F2 9 Tf 330.0 585.0 Td (Unit Price) Tj ET
+BT /F2 9 Tf 430.0 585.0 Td (Delivery Date) Tj ET
+0.05 0.07 0.13 rg
+BT /F1 9 Tf 48.0 563.0 Td (PN-1001) Tj ET
+BT /F1 9 Tf 140.0 563.0 Td (SS304) Tj ET
+BT /F1 9 Tf 250.0 563.0 Td (240) Tj ET
+BT /F1 9 Tf 330.0 563.0 Td (12.50) Tj ET
+BT /F1 9 Tf 430.0 563.0 Td (15-Oct-2026) Tj ET
+BT /F1 9 Tf 48.0 541.0 Td (PN-1002) Tj ET
+BT /F1 9 Tf 140.0 541.0 Td (SS316) Tj ET
+BT /F1 9 Tf 250.0 541.0 Td (500) Tj ET
+BT /F1 9 Tf 330.0 541.0 Td (5.10) Tj ET
+BT /F1 9 Tf 430.0 541.0 Td (18-Oct-2026) Tj ET
+BT /F1 9 Tf 48.0 519.0 Td (PN-1003) Tj ET
+BT /F1 9 Tf 140.0 519.0 Td () Tj ET
+BT /F1 9 Tf 250.0 519.0 Td (120) Tj ET
+BT /F1 9 Tf 330.0 519.0 Td (8.20) Tj ET
+BT /F1 9 Tf 430.0 519.0 Td (22-Oct-2026) Tj ET
+BT /F1 9 Tf 48.0 497.0 Td (PN-1004) Tj ET
+BT /F1 9 Tf 140.0 497.0 Td (AL6061) Tj ET
+BT /F1 9 Tf 250.0 497.0 Td (80) Tj ET
+BT /F1 9 Tf 330.0 497.0 Td (18.90) Tj ET
+BT /F1 9 Tf 430.0 497.0 Td (01-Nov-2026) Tj ET
+BT /F1 9 Tf 48.0 475.0 Td (PN-1006) Tj ET
+BT /F1 9 Tf 140.0 475.0 Td (TI-6AL-4V) Tj ET
+BT /F1 9 Tf 250.0 475.0 Td (40) Tj ET
+BT /F1 9 Tf 330.0 475.0 Td (110.00) Tj ET
+BT /F1 9 Tf 430.0 475.0 Td (05-Nov-2026) Tj ET
+BT /F1 9 Tf 48.0 453.0 Td (PN-9999) Tj ET
+BT /F1 9 Tf 140.0 453.0 Td (INCONEL718) Tj ET
+BT /F1 9 Tf 250.0 453.0 Td (12) Tj ET
+BT /F1 9 Tf 330.0 453.0 Td (250.00) Tj ET
+BT /F1 9 Tf 430.0 453.0 Td (12-Nov-2026) Tj ET
+BT /F1 9 Tf 48.0 431.0 Td (PN-1010) Tj ET
+BT /F1 9 Tf 140.0 431.0 Td (SA105) Tj ET
+BT /F1 9 Tf 250.0 431.0 Td (16) Tj ET
+BT /F1 9 Tf 330.0 431.0 Td (47.80) Tj ET
+BT /F1 9 Tf 430.0 431.0 Td (20-Nov-2026) Tj ET
+BT /F2 11 Tf 50.0 396.0 Td (Notes:) Tj ET
+BT /F1 9 Tf 50.0 380.0 Td (Ship to Dock 3. Reference PO-2026-0918 on packing slips.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000003418 00000 n 
+0000003488 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3563
+%%EOF
