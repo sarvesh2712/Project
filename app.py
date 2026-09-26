@@ -142,41 +142,44 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
     
     records = []
     for row in rows:
-        cells = [clean_cell(c) for c in row if clean_cell(c) is not None]
-        if not cells:
+        row_str = " ".join([clean_cell(c) for c in row if c])
+        
+        if "PO NUMBER" in row_str.upper() or "PURCHASE ORDER" in row_str.upper() or "GRAND TOTAL" in row_str.upper():
             continue
             
-        row_str = " ".join(cells)
         pn_match = PART_RE.search(row_str)
         if not pn_match:
             continue
             
         part_num = pn_match.group(1).upper()
+        if part_num == "2026":
+            continue
         
         grade = ""
         unit = "EA"
-        for cell in cells:
-            if "MAT-" in cell.upper() or cell.upper() in {"SS304", "SS316", "A36", "AI 6061", "C36000", "TI-6AL-4V", "POM-C", "NBR70"}:
-                grade = cell.upper().replace("MAT-", "").strip()
-            if cell.upper() in {"EA", "M", "PCS", "KG", "LBS", "IN", "FT", "OZ"}:
-                unit = cell.upper()
+        for cell in row:
+            c_upper = cell.upper()
+            if "MAT-" in c_upper or c_upper in {"SS304", "SS316", "A36", "AI 6061", "C36000", "TI-6AL-4V", "POM-C", "NBR70"}:
+                grade = c_upper.replace("MAT-", "").strip()
+            if c_upper in {"EA", "M", "PCS", "KG", "LBS", "IN", "FT", "OZ"}:
+                unit = c_upper
 
         numeric_cells = []
-        for idx, cell in enumerate(cells):
-            if part_num in cell.upper() or "STAINLESS" in cell.upper() or "MILD" in cell.upper() or "BRASS" in cell.upper() or "BOLT" in cell.upper() or "BAR" in cell.upper():
+        for cell in row:
+            c_text = cell.upper()
+            if part_num in c_text or "STAINLESS" in c_text or "MILD" in c_text or "BRASS" in c_text or "BOLT" in c_text or "BAR" in c_text or "PO-" in c_text:
                 continue
             val = parse_money(cell)
             if val is not None and val < 100000:
-                numeric_cells.append((idx, val))
+                numeric_cells.append(val)
                 
         qty = None
         price = None
         if len(numeric_cells) >= 2:
-            numeric_cells.sort(key=lambda x: x[0])
-            qty = numeric_cells[0][1]
-            price = numeric_cells[1][1] if len(numeric_cells) > 1 else None
+            qty = numeric_cells[0]
+            price = numeric_cells[1]
         elif len(numeric_cells) == 1:
-            qty = numeric_cells[0][1]
+            qty = numeric_cells[0]
 
         if qty is not None:
             records.append({
@@ -199,6 +202,8 @@ def parse_text_lines(text: str) -> pd.DataFrame:
         pn_match = PART_RE.search(line)
         if pn_match:
             part_num = pn_match.group(1).upper()
+            if part_num == "2026":
+                continue
             unit_match = re.search(r"\b(EA|M|PCS|KG|LBS|IN|FT|OZ)\b", line, re.I)
             unit = unit_match.group(1).upper() if unit_match else "EA"
             
