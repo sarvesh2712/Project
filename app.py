@@ -52,6 +52,10 @@ HEADER_ALIASES = {
     "due date": "Delivery Date",
     "ship date": "Delivery Date",
     "eta": "Delivery Date",
+    "line total": "Ignore",
+    "total": "Ignore",
+    "amount": "Ignore",
+    "ext price": "Ignore",
 }
 
 PART_RE = re.compile(r"\b([A-Z]{1,4}-?\d{3,6}[A-Z]?)\b", re.I)
@@ -183,7 +187,7 @@ def table_to_line_items(rows: list[list[str]]) -> pd.DataFrame | None:
         if "Part Number" in normalized_row:
             header_idx = i
             for idx, val in enumerate(normalized_row):
-                if val:
+                if val and val != "Ignore":
                     col_indices[val] = idx
             break
             
